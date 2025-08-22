@@ -200,7 +200,7 @@ function App() {
               {chords.length > 0 && (
                 <div className="flex-grow">
                   <h2 className="text-xl font-semibold text-white mb-2">Current Progression</h2>
-                  <div className="grid grid-cols-4 gap-2">
+                  <div className="grid grid-cols-4 gap-2 scale-75 origin-top-left">
                     {chords.map((chord, index) => (
                       <ChordDisplay
                         key={index}

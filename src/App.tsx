@@ -3,6 +3,7 @@ import { Music4, Sparkles } from 'lucide-react';
 import { ChordDisplay } from './components/ChordDisplay';
 import { PianoRoll } from './components/PianoRoll';
 import { Controls } from './components/Controls';
+import { LoadingScreen } from './components/LoadingScreen'; // Added
 
 import { AudioEngine } from './utils/audioEngine';
 import { downloadMidi } from './utils/midiExport';
@@ -11,6 +12,7 @@ import { Chord, ChordProgression } from './types/music';
 import { generateProgression, applyVoiceLeading, RHYTHM_PATTERNS, generateMelody } from './utils/musicTheory'; // Added generateMelody
 
 function App() {
+  const [isLoading, setIsLoading] = useState(true); // Added
   const [chords, setChords] = useState<Chord[]>([]);
   const [currentChord, setCurrentChord] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -34,8 +36,21 @@ function App() {
   const currentRhythmIndex = useRef(0);
 
   useEffect(() => {
-    // Generate initial progression
-    handleGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability, enableMelody, enableHumanization, humanizationAmount); // Pass all initial states
+    // Start the 3-second timer immediately for the fake loading screen
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000); // 3000 milliseconds = 3 seconds
+
+    // Perform app initialization in parallel
+    const initializeAppContent = async () => {
+      // Ensure audio context is initialized before generating progression
+      await audioEngine.current.testAudio(); // This also initializes the context
+      handleGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability, enableMelody, humanizationAmount); // Removed enableHumanization from handleGenerate as it's not used there
+    };
+    initializeAppContent();
+
+    // Cleanup timer if component unmounts
+    return () => clearTimeout(timer);
   }, []);
 
   const handleGenerate = (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number, enableMelody: boolean, enableHumanization: boolean, humanizationAmount: number) => { // Modified
@@ -132,74 +147,77 @@ function App() {
   
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white flex flex-col">
-      <div className="transform scale-90 origin-top-left w-[111.11%] h-[111.11%]"> {/* Scaled content wrapper */}
-        {/* Header */}
-        <div className="text-center py-4 border-b border-gray-800">
-          <h1 className="text-3xl font-bold text-white">ChordZ</h1>
-        </div>
-
-        <div className="flex-grow flex">
-          {/* Left Column */}
-          <div className="w-2/3 flex flex-col p-4 space-y-4 border-r border-gray-800">
-            <Controls
-              isPlaying={isPlaying}
-              onPlay={handlePlay}
-              onStop={handleStop}
-              onGenerate={handleGenerate}
-              onExportMidi={handleExportMidi}
-              selectedKey={selectedKey}
-              selectedScale={selectedScale}
-              selectedGenre={selectedGenre}
-              tempo={tempo}
-              selectedInversion={selectedInversion}
-              enableVoiceLeading={enableVoiceLeading}
-              enableRhythm={enableRhythm}
-              selectedRhythmPattern={selectedRhythmPattern}
-              selectedExtensionDensity={selectedExtensionDensity}
-              alterationProbability={alterationProbability}
-              enableMelody={enableMelody}
-              enableHumanization={enableHumanization}
-              humanizationAmount={humanizationAmount}
-              onKeyChange={setSelectedKey}
-              onScaleChange={setSelectedScale}
-              onGenreChange={setSelectedGenre}
-              onTempoChange={setTempo}
-              onInversionChange={setSelectedInversion}
-              onToggleVoiceLeading={setEnableVoiceLeading}
-              onToggleRhythm={setEnableRhythm}
-              onRhythmPatternChange={setSelectedRhythmPattern}
-              onExtensionDensityChange={setSelectedExtensionDensity}
-              onAlterationProbabilityChange={setAlterationProbability}
-              onToggleMelody={setEnableMelody}
-              onToggleHumanization={setEnableHumanization}
-              onHumanizationAmountChange={setHumanizationAmount}
-            />
-            {chords.length > 0 && (
-              <div className="flex-grow">
-                <h2 className="text-xl font-semibold text-white mb-2">Current Progression</h2>
-                <div className="grid grid-cols-4 gap-2">
-                  {chords.map((chord, index) => (
-                    <ChordDisplay
-                      key={index}
-                      chord={chord}
-                      isActive={currentChord === index}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
+    <>
+      {isLoading && <LoadingScreen />}
+      <div className="min-h-screen bg-gray-900 text-white flex flex-col" style={{ display: isLoading ? 'none' : 'flex' }}> {/* Hide main content while loading */}
+        <div className="transform scale-90 origin-top-left w-[111.11%] h-[111.11%]"> {/* Scaled content wrapper */}
+          {/* Header */}
+          <div className="text-center py-4 border-b border-gray-800">
+            <h1 className="text-3xl font-bold text-white">VibeChordZ</h1>
           </div>
 
-          {/* Right Column (Piano Roll) */}
-          <div className="w-1/3 flex-grow p-4">
-            {chords.length > 0 && (
-              <PianoRoll chords={chords} currentChord={currentChord} />
-            )}
+          <div className="flex-grow flex">
+            {/* Left Column */}
+            <div className="w-2/3 flex flex-col p-4 space-y-4 border-r border-gray-800">
+              <Controls
+                isPlaying={isPlaying}
+                onPlay={handlePlay}
+                onStop={handleStop}
+                onGenerate={handleGenerate}
+                onExportMidi={handleExportMidi}
+                selectedKey={selectedKey}
+                selectedScale={selectedScale}
+                selectedGenre={selectedGenre}
+                tempo={tempo}
+                selectedInversion={selectedInversion}
+                enableVoiceLeading={enableVoiceLeading}
+                enableRhythm={enableRhythm}
+                selectedRhythmPattern={selectedRhythmPattern}
+                selectedExtensionDensity={selectedExtensionDensity}
+                alterationProbability={alterationProbability}
+                enableMelody={enableMelody}
+                enableHumanization={enableHumanization}
+                humanizationAmount={humanizationAmount}
+                onKeyChange={setSelectedKey}
+                onScaleChange={setSelectedScale}
+                onGenreChange={setSelectedGenre}
+                onTempoChange={setTempo}
+                onInversionChange={setSelectedInversion}
+                onToggleVoiceLeading={setEnableVoiceLeading}
+                onToggleRhythm={setEnableRhythm}
+                onRhythmPatternChange={setSelectedRhythmPattern}
+                onExtensionDensityChange={setSelectedExtensionDensity}
+                onAlterationProbabilityChange={setAlterationProbability}
+                onToggleMelody={setEnableMelody}
+                onToggleHumanization={setEnableHumanization}
+                onHumanizationAmountChange={setHumanizationAmount}
+              />
+              {chords.length > 0 && (
+                <div className="flex-grow">
+                  <h2 className="text-xl font-semibold text-white mb-2">Current Progression</h2>
+                  <div className="grid grid-cols-4 gap-2">
+                    {chords.map((chord, index) => (
+                      <ChordDisplay
+                        key={index}
+                        chord={chord}
+                        isActive={currentChord === index}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Right Column (Piano Roll) */}
+            <div className="w-1/3 flex-grow p-4">
+              {chords.length > 0 && (
+                <PianoRoll chords={chords} currentChord={currentChord} />
+              )}
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
 

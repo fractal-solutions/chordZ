@@ -7,7 +7,11 @@ interface PianoRollProps {
 }
 
 export function PianoRoll({ chords, currentChord }: PianoRollProps) {
-  const midiRange = { min: 48, max: 72 }; // C3 to C5
+  const allMidiNotes = chords.flatMap(chord => chord.midi);
+  const midiRange = {
+    min: Math.min(...allMidiNotes) - 1,
+    max: Math.max(...allMidiNotes) + 1,
+  };
   const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   
   const isBlackKey = (noteIndex: number) => {

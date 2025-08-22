@@ -1,7 +1,7 @@
 import React from 'react';
+import * as Select from '@radix-ui/react-select';
 import { Play, Pause, Square, Download, Shuffle } from 'lucide-react';
-import { SCALES, GENRES } from '../utils/musicTheory';
-import { NOTES } from '../utils/musicTheory';
+import { SCALES, GENRES, NOTES } from '../utils/musicTheory';
 
 interface ControlsProps {
   isPlaying: boolean;
@@ -35,98 +35,69 @@ export function Controls({
   onTempoChange
 }: ControlsProps) {
   return (
-    <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 space-y-6">
-      {/* Selection Controls */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Key</label>
-          <select
-            value={selectedKey}
-            onChange={(e) => onKeyChange(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {NOTES.map(note => (
-              <option key={note} value={note}>{note}</option>
-            ))}
-          </select>
+    <div className="bg-gray-800 rounded-xl p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <CustomSelect label="Key" value={selectedKey} onChange={onKeyChange} options={NOTES.map(n => ({ value: n, label: n }))} />
+          <CustomSelect label="Scale" value={selectedScale} onChange={onScaleChange} options={Object.entries(SCALES).map(([key, scale]) => ({ value: key, label: scale.name }))} />
+          <CustomSelect label="Genre" value={selectedGenre} onChange={onGenreChange} options={Object.entries(GENRES).map(([key, genre]) => ({ value: key, label: genre.name }))} />
         </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Scale</label>
-          <select
-            value={selectedScale}
-            onChange={(e) => onScaleChange(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {Object.entries(SCALES).map(([key, scale]) => (
-              <option key={key} value={key}>{scale.name}</option>
-            ))}
-          </select>
-        </div>
-        
-        <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Genre</label>
-          <select
-            value={selectedGenre}
-            onChange={(e) => onGenreChange(e.target.value)}
-            className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            {Object.entries(GENRES).map(([key, genre]) => (
-              <option key={key} value={key}>{genre.name}</option>
-            ))}
-          </select>
-        </div>
+        <TempoControl tempo={tempo} onChange={onTempoChange} />
       </div>
-      
-      {/* Tempo Control */}
-      <div>
-        <label className="block text-sm font-medium text-gray-300 mb-2">
-          Tempo: {tempo} BPM
-        </label>
-        <input
-          type="range"
-          min="60"
-          max="200"
-          value={tempo}
-          onChange={(e) => onTempoChange(parseInt(e.target.value))}
-          className="w-full accent-blue-500"
-        />
-      </div>
-      
-      {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3">
-        <button
-          onClick={onGenerate}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          <Shuffle size={18} />
-          Generate
-        </button>
-        
-        <button
-          onClick={isPlaying ? onStop : onPlay}
-          className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
-        >
-          {isPlaying ? <Pause size={18} /> : <Play size={18} />}
-          {isPlaying ? 'Playing...' : 'Play'}
-        </button>
-        
-        <button
-          onClick={onStop}
-          className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
-        >
-          <Square size={18} />
-          Stop
-        </button>
-        
-        <button
-          onClick={onExportMidi}
-          className="flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-        >
-          <Download size={18} />
-          Export MIDI
-        </button>
+      <div className="flex items-center justify-center space-x-2">
+        <ActionButton onClick={onGenerate} icon={<Shuffle size={18} />} />
+        <ActionButton onClick={isPlaying ? onStop : onPlay} icon={isPlaying ? <Pause size={18} /> : <Play size={18} />} />
+        <ActionButton onClick={onStop} icon={<Square size={18} />} />
+        <ActionButton onClick={onExportMidi} icon={<Download size={18} />} />
       </div>
     </div>
   );
 }
+
+const CustomSelect = ({ label, value, onChange, options }) => (
+  <div className="space-y-1">
+    <label className="block text-xs font-medium text-gray-400">{label}</label>
+    <Select.Root value={value} onValueChange={onChange}>
+      <Select.Trigger className="w-32 bg-gray-700 border border-gray-600 rounded-md px-3 py-1 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+        <Select.Value />
+      </Select.Trigger>
+      <Select.Content className="bg-gray-700 border border-gray-600 rounded-md text-white">
+        <Select.Viewport>
+          {options.map(option => (
+            <Select.Item key={option.value} value={option.value} className="px-3 py-1 text-sm hover:bg-gray-600">
+              <Select.ItemText>{option.label}</Select.ItemText>
+            </Select.Item>
+          ))}
+        </Select.Viewport>
+      </Select.Content>
+    </Select.Root>
+  </div>
+);
+
+const TempoControl = ({ tempo, onChange }) => {
+  const handleWheel = (e) => {
+    const newTempo = tempo + (e.deltaY > 0 ? -1 : 1);
+    onChange(Math.max(60, Math.min(200, newTempo)));
+  };
+
+  return (
+    <div className="flex flex-col items-center space-y-1">
+      <label className="block text-xs font-medium text-gray-400">Tempo</label>
+      <div
+        className="w-24 h-12 bg-gray-900 rounded-md flex items-center justify-center text-2xl font-mono text-white select-none cursor-ns-resize"
+        onWheel={handleWheel}
+      >
+        {tempo}
+      </div>
+    </div>
+  );
+};
+
+const ActionButton = ({ onClick, icon }) => (
+  <button
+    onClick={onClick}
+    className="w-12 h-12 flex items-center justify-center bg-gray-700 hover:bg-gray-600 text-white rounded-md transition-colors shadow-md"
+  >
+    {icon}
+  </button>
+);

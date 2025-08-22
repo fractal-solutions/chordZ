@@ -7,7 +7,7 @@ interface PianoRollProps {
 }
 
 export function PianoRoll({ chords, currentChord }: PianoRollProps) {
-  const midiRange = { min: 48, max: 84 }; // C3 to C6
+  const midiRange = { min: 48, max: 72 }; // C3 to C5
   const noteNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
   
   const isBlackKey = (noteIndex: number) => {
@@ -22,13 +22,13 @@ export function PianoRoll({ chords, currentChord }: PianoRollProps) {
   };
 
   return (
-    <div className="bg-gray-900 rounded-xl p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">FL Studio Piano Roll View</h3>
+    <div className="bg-gray-900 rounded-xl p-2 h-full flex flex-col">
+      <h3 className="text-lg font-semibold text-white mb-2">Piano Roll</h3>
       
-      <div className="relative bg-gray-800 rounded-lg p-4 overflow-x-auto">
-        <div className="flex">
+      <div className="relative bg-gray-800 rounded-lg p-2 overflow-x-auto flex-grow">
+        <div className="flex h-full">
           {/* Piano keys */}
-          <div className="flex flex-col-reverse mr-2">
+          <div className="flex flex-col mr-2">
             {Array.from({ length: midiRange.max - midiRange.min + 1 }, (_, i) => {
               const midi = midiRange.min + i;
               const noteIndex = midi % 12;
@@ -39,10 +39,10 @@ export function PianoRoll({ chords, currentChord }: PianoRollProps) {
                 <div
                   key={midi}
                   className={`
-                    h-4 flex items-center px-2 text-xs font-mono border-b border-gray-700
+                    h-3 flex items-center px-1 text-xs font-mono border-b border-gray-700
                     ${isBlack 
-                      ? 'bg-gray-900 text-gray-300 w-12' 
-                      : 'bg-white text-black w-16'
+                      ? 'bg-gray-900 text-gray-300 w-10' 
+                      : 'bg-white text-black w-12'
                     }
                   `}
                 >
@@ -53,12 +53,12 @@ export function PianoRoll({ chords, currentChord }: PianoRollProps) {
           </div>
           
           {/* Note grid */}
-          <div className="flex-1 relative" style={{ minWidth: `${chords.length * 80}px` }}>
+          <div className="flex-1 relative" style={{ minWidth: `${chords.length * 60}px` }}>
             {Array.from({ length: midiRange.max - midiRange.min + 1 }, (_, rowIndex) => {
               const midi = midiRange.min + rowIndex;
               
               return (
-                <div key={midi} className="h-4 border-b border-gray-700 relative">
+                <div key={midi} className="h-3 border-b border-gray-700 relative">
                   {chords.map((chord, chordIndex) => {
                     const hasNote = chord.midi.includes(midi);
                     if (!hasNote) return null;
@@ -67,13 +67,13 @@ export function PianoRoll({ chords, currentChord }: PianoRollProps) {
                       <div
                         key={chordIndex}
                         className={`
-                          absolute h-3 rounded-sm border border-white/20
+                          absolute h-2 rounded-sm border border-white/20
                           ${getNoteColor(midi, chordIndex)}
                         `}
                         style={{
-                          left: `${chordIndex * 80}px`,
-                          width: '70px',
-                          top: '2px'
+                          left: `${chordIndex * 60}px`,
+                          width: '55px',
+                          top: '1px'
                         }}
                       />
                     );
@@ -83,7 +83,7 @@ export function PianoRoll({ chords, currentChord }: PianoRollProps) {
             })}
             
             {/* Chord markers */}
-            <div className="absolute bottom-0 left-0 right-0 h-8 bg-gray-700/50">
+            <div className="absolute bottom-0 left-0 right-0 h-6 bg-gray-700/50">
               {chords.map((chord, index) => (
                 <div
                   key={index}
@@ -96,8 +96,8 @@ export function PianoRoll({ chords, currentChord }: PianoRollProps) {
                     }
                   `}
                   style={{
-                    left: `${index * 80}px`,
-                    width: '80px'
+                    left: `${index * 60}px`,
+                    width: '60px'
                   }}
                 >
                   {chord.symbol}

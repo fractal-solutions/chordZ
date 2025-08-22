@@ -44,7 +44,7 @@ function App() {
     // Start the 3-second timer immediately for the fake loading screen
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 3000); // 3000 milliseconds = 3 seconds
+    }, 4000); // 4000 milliseconds = 4 seconds
 
     // Perform app initialization in parallel
     const initializeAppContent = async () => {

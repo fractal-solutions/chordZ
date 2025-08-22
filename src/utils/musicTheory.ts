@@ -476,3 +476,49 @@ export function applyVoiceLeading(chords: Chord[]): Chord[] {
   }
   return voiceLedChords;
 }
+
+export function generateMelody(progression: Chord[], scaleName: string, tempo: number): Note[] {
+  const melody: Note[] = [];
+  const scaleNotes = getScaleNotes(progression[0].root, scaleName); // Get scale notes for the key
+
+  let lastMelodyMidi: number | null = null;
+
+  progression.forEach((chord, chordIndex) => {
+    // For simplicity, let's generate one melody note per chord
+    // Choose a note from the chord that is also in the scale
+    const possibleMelodyNotes = chord.notes.filter(note => 
+      scaleNotes.includes(note.name)
+    );
+
+    let chosenMelodyNote: Note | null = null;
+
+    if (possibleMelodyNotes.length > 0) {
+      if (lastMelodyMidi !== null) {
+        // Try to find a note close to the last melody note (basic voice leading)
+        let minDistance = Infinity;
+        possibleMelodyNotes.forEach(note => {
+          const distance = Math.abs(note.midi - lastMelodyMidi!);
+          if (distance < minDistance) {
+            minDistance = distance;
+            chosenMelodyNote = note;
+          }
+        });
+      } else {
+        // For the first note, pick a random note from the possible notes
+        chosenMelodyNote = possibleMelodyNotes[Math.floor(Math.random() * possibleMelodyNotes.length)];
+      }
+    }
+
+    if (chosenMelodyNote) {
+      melody.push(chosenMelodyNote);
+      lastMelodyMidi = chosenMelodyNote.midi;
+    } else {
+      // Fallback if no suitable note found (e.g., pick root of the chord)
+      const fallbackNote = chord.notes[0]; // Root of the chord
+      melody.push(fallbackNote);
+      lastMelodyMidi = fallbackNote.midi;
+    }
+  });
+
+  return melody;
+}

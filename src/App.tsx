@@ -3,10 +3,12 @@ import { Music4, Sparkles } from 'lucide-react';
 import { ChordDisplay } from './components/ChordDisplay';
 import { PianoRoll } from './components/PianoRoll';
 import { Controls } from './components/Controls';
-import { generateProgression, applyVoiceLeading, RHYTHM_PATTERNS } from './utils/musicTheory'; // Added RHYTHM_PATTERNS
+
 import { AudioEngine } from './utils/audioEngine';
 import { downloadMidi } from './utils/midiExport';
 import { Chord, ChordProgression } from './types/music';
+
+import { generateProgression, applyVoiceLeading, RHYTHM_PATTERNS, generateMelody } from './utils/musicTheory'; // Added generateMelody
 
 function App() {
   const [chords, setChords] = useState<Chord[]>([]);
@@ -20,25 +22,34 @@ function App() {
   const [enableVoiceLeading, setEnableVoiceLeading] = useState(false);
   const [enableRhythm, setEnableRhythm] = useState(false);
   const [selectedRhythmPattern, setSelectedRhythmPattern] = useState('quarter');
-  const [selectedExtensionDensity, setSelectedExtensionDensity] = useState('none'); // Added
-  const [alterationProbability, setAlterationProbability] = useState(0); // Added
-  
+  const [selectedExtensionDensity, setSelectedExtensionDensity] = useState('none');
+  const [alterationProbability, setAlterationProbability] = useState(0);
+  const [enableMelody, setEnableMelody] = useState(false); // Added
+  const [melodyNotes, setMelodyNotes] = useState<Note[]>([]); // Added to store generated melody
+
   const audioEngine = useRef<AudioEngine>(new AudioEngine());
   const timerId = useRef<NodeJS.Timeout | null>(null);
   const currentRhythmIndex = useRef(0);
 
   useEffect(() => {
     // Generate initial progression
-    handleGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability); // Pass all initial states
+    handleGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability, enableMelody); // Pass all initial states
   }, []);
 
-  const handleGenerate = (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number) => { // Modified
+  const handleGenerate = (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number, enableMelody: boolean) => { // Modified
     let newChords = generateProgression(selectedKey, selectedScale, selectedGenre, inversionType, rhythmPatternName, extensionDensity, alterationProbability); // Pass all parameters
     if (voiceLeadingEnabled) {
       newChords = applyVoiceLeading(newChords);
     }
     setChords(newChords);
     setCurrentChord(-1);
+
+    if (enableMelody) {
+      const newMelody = generateMelody(newChords, selectedScale, tempo); // Generate melody based on new chords
+      setMelodyNotes(newMelody);
+    } else {
+      setMelodyNotes([]); // Clear melody if disabled
+    }
   };
 
   const handlePlay = async () => {
@@ -68,7 +79,11 @@ function App() {
       const rhythmUnitDuration = (60 / tempo) * 1000;
       const currentBeatDuration = rhythmPattern[currentRhythmIndex.current % rhythmPattern.length] * rhythmUnitDuration;
       
-      audioEngine.current.playChord(chords[chordIndex], currentBeatDuration * 0.9);
+      audioEngine.current.playChord(chords[chordIndex], currentBeatDuration * 0.9); // Play for 90% of duration
+
+      if (enableMelody && melodyNotes[chordIndex]) {
+        audioEngine.current.playNote(melodyNotes[chordIndex].midi, currentBeatDuration * 0.9, 0.7); // Play melody note
+      }
       
       timerId.current = setTimeout(() => {
         currentRhythmIndex.current = (currentRhythmIndex.current + 1) % rhythmPattern.length;
@@ -100,8 +115,10 @@ function App() {
       tempo,
       voicing: selectedInversion,
       rhythmPattern: enableRhythm ? selectedRhythmPattern : undefined,
-      extensionDensity: selectedExtensionDensity, // Added
-      alterationProbability: alterationProbability // Added
+      extensionDensity: selectedExtensionDensity,
+      alterationProbability: alterationProbability,
+      melodyNotes: enableMelody ? melodyNotes : undefined, // Added
+      enableMelody: enableMelody // Added
     };
     
     const filename = `${selectedKey}_${selectedScale}_${selectedGenre}_progression.mid`;
@@ -134,8 +151,9 @@ function App() {
             enableVoiceLeading={enableVoiceLeading}
             enableRhythm={enableRhythm}
             selectedRhythmPattern={selectedRhythmPattern}
-            selectedExtensionDensity={selectedExtensionDensity} // Added
-            alterationProbability={alterationProbability} // Added
+            selectedExtensionDensity={selectedExtensionDensity}
+            alterationProbability={alterationProbability}
+            enableMelody={enableMelody} // Added
             onKeyChange={setSelectedKey}
             onScaleChange={setSelectedScale}
             onGenreChange={setSelectedGenre}
@@ -144,8 +162,9 @@ function App() {
             onToggleVoiceLeading={setEnableVoiceLeading}
             onToggleRhythm={setEnableRhythm}
             onRhythmPatternChange={setSelectedRhythmPattern}
-            onExtensionDensityChange={setSelectedExtensionDensity} // Added
-            onAlterationProbabilityChange={setAlterationProbability} // Added
+            onExtensionDensityChange={setSelectedExtensionDensity}
+            onAlterationProbabilityChange={setAlterationProbability}
+            onToggleMelody={setEnableMelody} // Added
           />
           {chords.length > 0 && (
             <div className="flex-grow">

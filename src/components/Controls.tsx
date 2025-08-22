@@ -7,7 +7,7 @@ interface ControlsProps {
   isPlaying: boolean;
   onPlay: () => void;
   onStop: () => void;
-  onGenerate: (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number) => void; // Modified
+  onGenerate: (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number, enableMelody: boolean) => void; // Modified
   onExportMidi: () => void;
   selectedKey: string;
   selectedScale: string;
@@ -17,8 +17,9 @@ interface ControlsProps {
   enableVoiceLeading: boolean;
   enableRhythm: boolean;
   selectedRhythmPattern: string;
-  selectedExtensionDensity: string; // Added
-  alterationProbability: number; // Added
+  selectedExtensionDensity: string;
+  alterationProbability: number;
+  enableMelody: boolean; // Added
   onKeyChange: (key: string) => void;
   onScaleChange: (scale: string) => void;
   onGenreChange: (genre: string) => void;
@@ -27,8 +28,9 @@ interface ControlsProps {
   onToggleVoiceLeading: (enabled: boolean) => void;
   onToggleRhythm: (enabled: boolean) => void;
   onRhythmPatternChange: (pattern: string) => void;
-  onExtensionDensityChange: (density: string) => void; // Added
-  onAlterationProbabilityChange: (probability: number) => void; // Added
+  onExtensionDensityChange: (density: string) => void;
+  onAlterationProbabilityChange: (probability: number) => void;
+  onToggleMelody: (enabled: boolean) => void; // Added
 }
 
 export function Controls({
@@ -45,8 +47,9 @@ export function Controls({
   enableVoiceLeading,
   enableRhythm,
   selectedRhythmPattern,
-  selectedExtensionDensity, // Added
-  alterationProbability, // Added
+  selectedExtensionDensity,
+  alterationProbability,
+  enableMelody, // Added
   onKeyChange,
   onScaleChange,
   onGenreChange,
@@ -56,7 +59,8 @@ export function Controls({
   onToggleRhythm,
   onRhythmPatternChange,
   onExtensionDensityChange,
-  onAlterationProbabilityChange // Added
+  onAlterationProbabilityChange,
+  onToggleMelody // Added
 }: ControlsProps) {
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-4">
@@ -114,6 +118,16 @@ export function Controls({
             />
             <label htmlFor="rhythmToggle" className="text-white">Enable Rhythm</label>
           </div>
+          <div className="flex items-center space-x-2"> {/* Added melody toggle */}
+            <input
+              type="checkbox"
+              id="melodyToggle"
+              checked={enableMelody}
+              onChange={(e) => onToggleMelody(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-blue-600"
+            />
+            <label htmlFor="melodyToggle" className="text-white">Enable Melody</label>
+          </div>
         </div>
       </div>
       <div className="flex items-center justify-between mt-4"> {/* New row for alteration probability */}
@@ -132,7 +146,7 @@ export function Controls({
         </div>
       </div>
       <div className="flex items-center justify-center space-x-2">
-        <ActionButton onClick={() => onGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability)} icon={<Shuffle size={18} />} />
+        <ActionButton onClick={() => onGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability, enableMelody)} icon={<Shuffle size={18} />} />
         <ActionButton onClick={isPlaying ? onStop : onPlay} icon={isPlaying ? <Pause size={18} /> : <Play size={18} />} />
         <ActionButton onClick={onStop} icon={<Square size={18} />} />
         <ActionButton onClick={onExportMidi} icon={<Download size={18} />} />

@@ -20,6 +20,47 @@ export class AudioEngine {
     }
   }
 
+  async playNote(midi: number, duration: number, volume: number = 0.5) {
+    try {
+      await this.initAudioContext();
+
+      if (!this.audioContext || !this.masterGain) {
+        throw new Error('Audio context not initialized');
+      }
+
+      const now = this.audioContext.currentTime;
+      const frequency = 440 * Math.pow(2, (midi - 69) / 12); // Convert MIDI to frequency
+
+      const oscillator = this.audioContext.createOscillator();
+      const gainNode = this.audioContext.createGain();
+
+      oscillator.connect(gainNode);
+      gainNode.connect(this.masterGain);
+
+      oscillator.type = 'sine'; // Simple sine wave for melody
+      oscillator.frequency.setValueAtTime(frequency, now);
+
+      // Envelope
+      gainNode.gain.setValueAtTime(0, now);
+      gainNode.gain.linearRampToValueAtTime(volume, now + 0.01);
+      gainNode.gain.exponentialRampToValueAtTime(volume * 0.7, now + duration / 1000 - 0.05);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, now + duration / 1000);
+
+      oscillator.start(now);
+      oscillator.stop(now + duration / 1000);
+
+      this.activeOscillators.push(oscillator);
+
+      oscillator.onended = () => {
+        this.activeOscillators = this.activeOscillators.filter(osc => osc !== oscillator);
+      };
+
+    } catch (error) {
+      console.error('Error playing melody note:', error);
+      throw error;
+    }
+  }
+
   async playChord(chord: any, duration: number = 2000) {
     try {
       await this.initAudioContext();

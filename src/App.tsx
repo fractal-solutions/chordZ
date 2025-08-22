@@ -7,13 +7,18 @@ import { LoadingScreen } from './components/LoadingScreen'; // Added
 
 import { AudioEngine } from './utils/audioEngine';
 import { downloadMidi } from './utils/midiExport';
-import { Chord, ChordProgression } from './types/music';
+import { Chord, Note, ChordProgression } from './types/music'; // Added Note import
 
 import { generateProgression, applyVoiceLeading, RHYTHM_PATTERNS, generateMelody } from './utils/musicTheory'; // Added generateMelody
 
 function App() {
   const [isLoading, setIsLoading] = useState(true); // Added
-  const [chords, setChords] = useState<Chord[]>([]);
+  const [chords, setChords] = useState<Chord[]>([ // Hardcoded initial placeholder
+    { root: 'C', quality: 'major', symbol: 'C', notes: [{ name: 'C', midi: 60, frequency: 261.63 }, { name: 'E', midi: 64, frequency: 329.63 }, { name: 'G', midi: 67, frequency: 392.00 }], midi: [60, 64, 67] },
+    { root: 'F', quality: 'major', symbol: 'F', notes: [{ name: 'F', midi: 65, frequency: 349.23 }, { name: 'A', midi: 69, frequency: 440.00 }, { name: 'C', midi: 72, frequency: 523.25 }], midi: [65, 69, 72] },
+    { root: 'G', quality: 'major', symbol: 'G', notes: [{ name: 'G', midi: 67, frequency: 392.00 }, { name: 'B', midi: 71, frequency: 493.88 }, { name: 'D', midi: 74, frequency: 587.33 }], midi: [67, 71, 74] },
+    { root: 'C', quality: 'major', symbol: 'C', notes: [{ name: 'C', midi: 60, frequency: 261.63 }, { name: 'E', midi: 64, frequency: 329.63 }, { name: 'G', midi: 67, frequency: 392.00 }], midi: [60, 64, 67] },
+  ]);
   const [currentChord, setCurrentChord] = useState(-1);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedKey, setSelectedKey] = useState('C');
@@ -28,8 +33,8 @@ function App() {
   const [alterationProbability, setAlterationProbability] = useState(0);
   const [enableMelody, setEnableMelody] = useState(false);
   const [melodyNotes, setMelodyNotes] = useState<Note[]>([]);
-  const [enableHumanization, setEnableHumanization] = useState(false); // Added
-  const [humanizationAmount, setHumanizationAmount] = useState(0); // Added
+  const [enableHumanization, setEnableHumanization] = useState(false);
+  const [humanizationAmount, setHumanizationAmount] = useState(0);
 
   const audioEngine = useRef<AudioEngine>(new AudioEngine());
   const timerId = useRef<NodeJS.Timeout | null>(null);

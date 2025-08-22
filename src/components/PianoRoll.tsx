@@ -34,7 +34,7 @@ export function PianoRoll({ chords, currentChord }: PianoRollProps) {
           {/* Piano keys */}
           <div className="flex flex-col mr-2">
             {Array.from({ length: midiRange.max - midiRange.min + 1 }, (_, i) => {
-              const midi = midiRange.min + i;
+              const midi = midiRange.max - i; // Iterate downwards
               const noteIndex = midi % 12;
               const octave = Math.floor(midi / 12) - 1;
               const isBlack = isBlackKey(noteIndex);
@@ -59,7 +59,7 @@ export function PianoRoll({ chords, currentChord }: PianoRollProps) {
           {/* Note grid */}
           <div className="flex-1 relative" style={{ minWidth: `${chords.length * 60}px` }}>
             {Array.from({ length: midiRange.max - midiRange.min + 1 }, (_, rowIndex) => {
-              const midi = midiRange.min + rowIndex;
+              const midi = midiRange.max - rowIndex; // Iterate downwards
               
               return (
                 <div key={midi} className="h-3 border-b border-gray-700 relative">

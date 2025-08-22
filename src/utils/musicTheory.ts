@@ -90,6 +90,35 @@ export function midiToFrequency(midi: number): number {
   return 440 * Math.pow(2, (midi - 69) / 12);
 }
 
+export function getNoteName(midi: number): string {
+  return NOTES[midi % 12];
+}
+
+export function getChordName(midiNotes: number[]): string {
+  if (midiNotes.length === 0) return 'No Chord';
+
+  const rootMidi = midiNotes[0];
+  const rootNote = NOTES[rootMidi % 12];
+
+  const intervals = midiNotes.slice(1).map(note => (note - rootMidi) % 12);
+  intervals.sort((a, b) => a - b);
+
+  // Basic chord identification (can be expanded)
+  if (intervals.includes(4) && intervals.includes(7)) {
+    return `${rootNote} Major`;
+  } else if (intervals.includes(3) && intervals.includes(7)) {
+    return `${rootNote} Minor`;
+  } else if (intervals.includes(4) && intervals.includes(7) && intervals.includes(10)) {
+    return `${rootNote} Dominant 7`;
+  } else if (intervals.includes(3) && intervals.includes(7) && intervals.includes(10)) {
+    return `${rootNote} Minor 7`;
+  } else if (intervals.includes(4) && intervals.includes(7) && intervals.includes(11)) {
+    return `${rootNote} Major 7`;
+  }
+
+  return `${rootNote} Unknown Chord`;
+}
+
 export function getScaleNotes(root: string, scaleName: string): string[] {
   const rootIndex = NOTES.indexOf(root);
   const scale = SCALES[scaleName];
@@ -136,7 +165,55 @@ export function getDiatonicChordQuality(scaleName: string, degree: number): stri
   return 'major'; // Fallback
 }
 
-export function getChordFromScale(root: string, degree: number, scaleName: string, chordType?: string): Chord {
+export function applyInversion(midiNotes: number[], inversion: string): number[] {
+  if (midiNotes.length === 0) return [];
+
+  let invertedNotes = [...midiNotes].sort((a, b) => a - b); // Ensure sorted
+
+  switch (inversion) {
+    case 'first':
+      if (invertedNotes.length > 1) {
+        const root = invertedNotes[0];
+        invertedNotes.shift(); // Remove root
+        invertedNotes.push(root + 12); // Add root an octave higher
+        invertedNotes.sort((a, b) => a - b); // Re-sort
+      }
+      break;
+    case 'second':
+      if (invertedNotes.length > 2) {
+        const root = invertedNotes[0];
+        const third = invertedNotes[1];
+        invertedNotes.splice(0, 2); // Remove root and third
+        invertedNotes.push(root + 12, third + 12); // Add them an octave higher
+        invertedNotes.sort((a, b) => a - b); // Re-sort
+      }
+      break;
+    case 'third': // For 7th chords and beyond
+      if (invertedNotes.length > 3) {
+        const root = invertedNotes[0];
+        const third = invertedNotes[1];
+        const fifth = invertedNotes[2];
+        invertedNotes.splice(0, 3); // Remove root, third, fifth
+        invertedNotes.push(root + 12, third + 12, fifth + 12); // Add them an octave higher
+        invertedNotes.sort((a, b) => a - b); // Re-sort
+      }
+      break;
+    case 'drop2': // Example of a voicing (more complex, just for illustration)
+      if (invertedNotes.length >= 4) {
+        const secondNote = invertedNotes[invertedNotes.length - 2]; // Second from top
+        invertedNotes.splice(invertedNotes.length - 2, 1); // Remove it
+        invertedNotes.unshift(secondNote - 12); // Place it an octave lower at the beginning
+        invertedNotes.sort((a, b) => a - b); // Re-sort
+      }
+      break;
+    case 'root': // Default, no change
+    default:
+      break;
+  }
+  return invertedNotes;
+}
+
+export function getChordFromScale(root: string, degree: number, scaleName: string, chordType?: string, inversionType?: string): Chord {
   const scaleNotes = getScaleNotes(root, scaleName);
   const chordRoot = scaleNotes[degree - 1];
   
@@ -270,18 +347,23 @@ export function getChordFromScale(root: string, degree: number, scaleName: strin
   }
   
   const chordRootIndex = NOTES.indexOf(chordRoot);
-  const notes: Note[] = intervals.map(interval => {
+  let midiNotes = intervals.map(interval => {
     const noteIndex = (chordRootIndex + interval) % 12;
     const octave = 4 + Math.floor((chordRootIndex + interval) / 12);
     const noteName = NOTES[noteIndex];
-    const midi = noteToMidi(noteName, octave);
-    
-    return {
-      name: noteName,
-      midi,
-      frequency: midiToFrequency(midi)
-    };
+    return noteToMidi(noteName, octave);
   });
+
+  // Apply inversion if specified
+  if (inversionType) {
+    midiNotes = applyInversion(midiNotes, inversionType);
+  }
+
+  const notes: Note[] = midiNotes.map(midi => ({
+    name: getNoteName(midi),
+    midi,
+    frequency: midiToFrequency(midi)
+  }));
   
   return {
     root: chordRoot,
@@ -292,7 +374,7 @@ export function getChordFromScale(root: string, degree: number, scaleName: strin
   };
 }
 
-export function generateProgression(key: string, scaleName: string, genreName: string): Chord[] {
+export function generateProgression(key: string, scaleName: string, genreName: string, inversionType?: string): Chord[] {
   const genre = GENRES[genreName];
   const pattern = genre.patterns[Math.floor(Math.random() * genre.patterns.length)];
   
@@ -328,6 +410,76 @@ export function generateProgression(key: string, scaleName: string, genreName: s
       // This is an area for future improvement.
     }
     
-    return getChordFromScale(key, degree, scaleName, chosenChordType);
+    return getChordFromScale(key, degree, scaleName, chosenChordType, inversionType);
   });
+}
+
+export function applyVoiceLeading(chords: Chord[]): Chord[] {
+  if (chords.length <= 1) return chords;
+
+  const voiceLedChords: Chord[] = [chords[0]]; // Start with the first chord as is
+
+  for (let i = 1; i < chords.length; i++) {
+    const prevChord = voiceLedChords[i - 1];
+    const currentChord = chords[i];
+
+    let bestChord: Chord = currentChord;
+    let minMovement = Infinity;
+
+    // Generate all possible inversions/octave shifts for the current chord
+    // For simplicity, let's consider root, first, second, third inversions,
+    // and also shifting the entire chord up/down an octave.
+    const possibleInversions = ['root', 'first', 'second', 'third']; // Add 'drop2' if needed
+
+    let candidateMidiNotes: number[][] = [];
+
+    // Add original chord notes
+    candidateMidiNotes.push(currentChord.midi);
+
+    // Add inversions
+    possibleInversions.forEach(inv => {
+      if (inv !== 'root') { // 'root' is already added
+        candidateMidiNotes.push(applyInversion(currentChord.midi, inv));
+      }
+    });
+
+    // Add octave shifts for all candidates
+    const originalCandidatesCount = candidateMidiNotes.length;
+    for (let j = 0; j < originalCandidatesCount; j++) {
+      const notes = candidateMidiNotes[j];
+      candidateMidiNotes.push(notes.map(note => note + 12)); // Octave up
+      candidateMidiNotes.push(notes.map(note => note - 12)); // Octave down
+    }
+
+    // Find the best voicing
+    candidateMidiNotes.forEach(candidateNotes => {
+      // Ensure candidateNotes are sorted for consistent comparison
+      candidateNotes.sort((a, b) => a - b);
+
+      let currentMovement = 0;
+      // Calculate total movement (sum of absolute differences for each voice)
+      // This is a simplified approach. A more robust solution would involve
+      // matching voices (e.g., closest note in the next chord).
+      for (let k = 0; k < Math.min(prevChord.midi.length, candidateNotes.length); k++) {
+        currentMovement += Math.abs(prevChord.midi[k] - candidateNotes[k]);
+      }
+
+      if (currentMovement < minMovement) {
+        minMovement = currentMovement;
+        // Create a new Chord object with the voice-led MIDI notes
+        const newNotes: Note[] = candidateNotes.map(midi => ({
+          name: getNoteName(midi),
+          midi,
+          frequency: midiToFrequency(midi)
+        }));
+        bestChord = {
+          ...currentChord,
+          notes: newNotes,
+          midi: newNotes.map(n => n.midi)
+        };
+      }
+    });
+    voiceLedChords.push(bestChord);
+  }
+  return voiceLedChords;
 }

@@ -18,6 +18,7 @@ export interface ChordProgression {
   scale: string;
   genre: string;
   tempo: number;
+  voicing?: string; // Added for chord voicings/inversions
 }
 
 export interface Scale {

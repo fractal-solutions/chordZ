@@ -7,16 +7,20 @@ interface ControlsProps {
   isPlaying: boolean;
   onPlay: () => void;
   onStop: () => void;
-  onGenerate: () => void;
+  onGenerate: (inversionType: string, voiceLeadingEnabled: boolean) => void; // Modified
   onExportMidi: () => void;
   selectedKey: string;
   selectedScale: string;
   selectedGenre: string;
   tempo: number;
+  selectedInversion: string;
+  enableVoiceLeading: boolean; // Added
   onKeyChange: (key: string) => void;
   onScaleChange: (scale: string) => void;
   onGenreChange: (genre: string) => void;
   onTempoChange: (tempo: number) => void;
+  onInversionChange: (inversion: string) => void;
+  onToggleVoiceLeading: (enabled: boolean) => void; // Added
 }
 
 export function Controls({
@@ -29,10 +33,14 @@ export function Controls({
   selectedScale,
   selectedGenre,
   tempo,
+  selectedInversion,
+  enableVoiceLeading, // Added
   onKeyChange,
   onScaleChange,
   onGenreChange,
-  onTempoChange
+  onTempoChange,
+  onInversionChange,
+  onToggleVoiceLeading // Added
 }: ControlsProps) {
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-4">
@@ -41,11 +49,35 @@ export function Controls({
           <CustomSelect label="Key" value={selectedKey} onChange={onKeyChange} options={NOTES.map(n => ({ value: n, label: n }))} />
           <CustomSelect label="Scale" value={selectedScale} onChange={onScaleChange} options={Object.entries(SCALES).map(([key, scale]) => ({ value: key, label: scale.name }))} />
           <CustomSelect label="Genre" value={selectedGenre} onChange={onGenreChange} options={Object.entries(GENRES).map(([key, genre]) => ({ value: key, label: genre.name }))} />
+          <CustomSelect
+            label="Inversion"
+            value={selectedInversion}
+            onChange={onInversionChange}
+            options={[
+              { value: 'root', label: 'Root Position' },
+              { value: 'first', label: 'First Inversion' },
+              { value: 'second', label: 'Second Inversion' },
+              { value: 'third', label: 'Third Inversion' },
+              { value: 'drop2', label: 'Drop 2 Voicing' },
+            ]}
+          />
         </div>
         <TempoControl tempo={tempo} onTempoChange={onTempoChange} />
       </div>
+      <div className="flex items-center justify-between mt-4"> {/* Added a new row for voice leading */}
+        <div className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            id="voiceLeadingToggle"
+            checked={enableVoiceLeading}
+            onChange={(e) => onToggleVoiceLeading(e.target.checked)}
+            className="form-checkbox h-5 w-5 text-blue-600"
+          />
+          <label htmlFor="voiceLeadingToggle" className="text-white">Enable Voice Leading</label>
+        </div>
+      </div>
       <div className="flex items-center justify-center space-x-2">
-        <ActionButton onClick={onGenerate} icon={<Shuffle size={18} />} />
+        <ActionButton onClick={() => onGenerate(selectedInversion, enableVoiceLeading)} icon={<Shuffle size={18} />} />
         <ActionButton onClick={isPlaying ? onStop : onPlay} icon={isPlaying ? <Pause size={18} /> : <Play size={18} />} />
         <ActionButton onClick={onStop} icon={<Square size={18} />} />
         <ActionButton onClick={onExportMidi} icon={<Download size={18} />} />

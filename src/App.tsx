@@ -3,7 +3,7 @@ import { Music4, Sparkles } from 'lucide-react';
 import { ChordDisplay } from './components/ChordDisplay';
 import { PianoRoll } from './components/PianoRoll';
 import { Controls } from './components/Controls';
-import { generateProgression } from './utils/musicTheory';
+import { generateProgression, applyVoiceLeading } from './utils/musicTheory';
 import { AudioEngine } from './utils/audioEngine';
 import { downloadMidi } from './utils/midiExport';
 import { Chord, ChordProgression } from './types/music';
@@ -16,17 +16,22 @@ function App() {
   const [selectedScale, setSelectedScale] = useState('major');
   const [selectedGenre, setSelectedGenre] = useState('soul');
   const [tempo, setTempo] = useState(120);
+  const [selectedInversion, setSelectedInversion] = useState('root');
+  const [enableVoiceLeading, setEnableVoiceLeading] = useState(false); // Added
   
   const audioEngine = useRef<AudioEngine>(new AudioEngine());
   const timerId = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     // Generate initial progression
-    handleGenerate();
+    handleGenerate(selectedInversion, enableVoiceLeading); // Pass initial inversion and voice leading state
   }, []);
 
-  const handleGenerate = () => {
-    const newChords = generateProgression(selectedKey, selectedScale, selectedGenre);
+  const handleGenerate = (inversionType: string, voiceLeadingEnabled: boolean) => { // Modified to accept voiceLeadingEnabled
+    let newChords = generateProgression(selectedKey, selectedScale, selectedGenre, inversionType);
+    if (voiceLeadingEnabled) {
+      newChords = applyVoiceLeading(newChords); // Apply voice leading
+    }
     setChords(newChords);
     setCurrentChord(-1);
   };
@@ -106,10 +111,14 @@ function App() {
             selectedScale={selectedScale}
             selectedGenre={selectedGenre}
             tempo={tempo}
+            selectedInversion={selectedInversion}
+            enableVoiceLeading={enableVoiceLeading}
             onKeyChange={setSelectedKey}
             onScaleChange={setSelectedScale}
             onGenreChange={setSelectedGenre}
             onTempoChange={setTempo}
+            onInversionChange={setSelectedInversion}
+            onToggleVoiceLeading={setEnableVoiceLeading}
           />
           {chords.length > 0 && (
             <div className="flex-grow">

@@ -29,6 +29,8 @@ export interface ChordProgression {
   alterationProbability?: number; // Added for alteration control (0-1)
   melodyNotes?: Note[]; // Added for melody generation
   enableMelody?: boolean; // Added to control melody generation
+  enableHumanization?: boolean; // Added for humanization control
+  humanizationAmount?: number; // Added for humanization intensity (0-1)
 }
 
 export interface Scale {

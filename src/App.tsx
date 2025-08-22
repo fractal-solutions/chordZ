@@ -24,8 +24,10 @@ function App() {
   const [selectedRhythmPattern, setSelectedRhythmPattern] = useState('quarter');
   const [selectedExtensionDensity, setSelectedExtensionDensity] = useState('none');
   const [alterationProbability, setAlterationProbability] = useState(0);
-  const [enableMelody, setEnableMelody] = useState(false); // Added
-  const [melodyNotes, setMelodyNotes] = useState<Note[]>([]); // Added to store generated melody
+  const [enableMelody, setEnableMelody] = useState(false);
+  const [melodyNotes, setMelodyNotes] = useState<Note[]>([]);
+  const [enableHumanization, setEnableHumanization] = useState(false); // Added
+  const [humanizationAmount, setHumanizationAmount] = useState(0); // Added
 
   const audioEngine = useRef<AudioEngine>(new AudioEngine());
   const timerId = useRef<NodeJS.Timeout | null>(null);
@@ -33,11 +35,11 @@ function App() {
 
   useEffect(() => {
     // Generate initial progression
-    handleGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability, enableMelody); // Pass all initial states
+    handleGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability, enableMelody, enableHumanization, humanizationAmount); // Pass all initial states
   }, []);
 
-  const handleGenerate = (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number, enableMelody: boolean) => { // Modified
-    let newChords = generateProgression(selectedKey, selectedScale, selectedGenre, inversionType, rhythmPatternName, extensionDensity, alterationProbability); // Pass all parameters
+  const handleGenerate = (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number, enableMelody: boolean, enableHumanization: boolean, humanizationAmount: number) => { // Modified
+    let newChords = generateProgression(selectedKey, selectedScale, selectedGenre, inversionType, rhythmPatternName, extensionDensity, alterationProbability);
     if (voiceLeadingEnabled) {
       newChords = applyVoiceLeading(newChords);
     }
@@ -45,10 +47,10 @@ function App() {
     setCurrentChord(-1);
 
     if (enableMelody) {
-      const newMelody = generateMelody(newChords, selectedScale, tempo); // Generate melody based on new chords
+      const newMelody = generateMelody(newChords, selectedScale, tempo);
       setMelodyNotes(newMelody);
     } else {
-      setMelodyNotes([]); // Clear melody if disabled
+      setMelodyNotes([]);
     }
   };
 
@@ -79,10 +81,10 @@ function App() {
       const rhythmUnitDuration = (60 / tempo) * 1000;
       const currentBeatDuration = rhythmPattern[currentRhythmIndex.current % rhythmPattern.length] * rhythmUnitDuration;
       
-      audioEngine.current.playChord(chords[chordIndex], currentBeatDuration * 0.9); // Play for 90% of duration
+      audioEngine.current.playChord(chords[chordIndex], currentBeatDuration * 0.9, humanizationAmount); // Pass humanizationAmount
 
       if (enableMelody && melodyNotes[chordIndex]) {
-        audioEngine.current.playNote(melodyNotes[chordIndex].midi, currentBeatDuration * 0.9, 0.7); // Play melody note
+        audioEngine.current.playNote(melodyNotes[chordIndex].midi, currentBeatDuration * 0.9, 0.7, humanizationAmount); // Pass humanizationAmount
       }
       
       timerId.current = setTimeout(() => {
@@ -117,8 +119,10 @@ function App() {
       rhythmPattern: enableRhythm ? selectedRhythmPattern : undefined,
       extensionDensity: selectedExtensionDensity,
       alterationProbability: alterationProbability,
-      melodyNotes: enableMelody ? melodyNotes : undefined, // Added
-      enableMelody: enableMelody // Added
+      melodyNotes: enableMelody ? melodyNotes : undefined,
+      enableMelody: enableMelody,
+      enableHumanization: enableHumanization, // Added
+      humanizationAmount: humanizationAmount // Added
     };
     
     const filename = `${selectedKey}_${selectedScale}_${selectedGenre}_progression.mid`;
@@ -153,7 +157,9 @@ function App() {
             selectedRhythmPattern={selectedRhythmPattern}
             selectedExtensionDensity={selectedExtensionDensity}
             alterationProbability={alterationProbability}
-            enableMelody={enableMelody} // Added
+            enableMelody={enableMelody}
+            enableHumanization={enableHumanization} // Added
+            humanizationAmount={humanizationAmount} // Added
             onKeyChange={setSelectedKey}
             onScaleChange={setSelectedScale}
             onGenreChange={setSelectedGenre}
@@ -164,7 +170,9 @@ function App() {
             onRhythmPatternChange={setSelectedRhythmPattern}
             onExtensionDensityChange={setSelectedExtensionDensity}
             onAlterationProbabilityChange={setAlterationProbability}
-            onToggleMelody={setEnableMelody} // Added
+            onToggleMelody={setEnableMelody}
+            onToggleHumanization={setEnableHumanization} // Added
+            onHumanizationAmountChange={setHumanizationAmount} // Added
           />
           {chords.length > 0 && (
             <div className="flex-grow">

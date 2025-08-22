@@ -7,7 +7,7 @@ interface ControlsProps {
   isPlaying: boolean;
   onPlay: () => void;
   onStop: () => void;
-  onGenerate: (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number, enableMelody: boolean) => void; // Modified
+  onGenerate: (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number, enableMelody: boolean, enableHumanization: boolean, humanizationAmount: number) => void; // Modified
   onExportMidi: () => void;
   selectedKey: string;
   selectedScale: string;
@@ -19,7 +19,9 @@ interface ControlsProps {
   selectedRhythmPattern: string;
   selectedExtensionDensity: string;
   alterationProbability: number;
-  enableMelody: boolean; // Added
+  enableMelody: boolean;
+  enableHumanization: boolean; // Added
+  humanizationAmount: number; // Added
   onKeyChange: (key: string) => void;
   onScaleChange: (scale: string) => void;
   onGenreChange: (genre: string) => void;
@@ -30,7 +32,9 @@ interface ControlsProps {
   onRhythmPatternChange: (pattern: string) => void;
   onExtensionDensityChange: (density: string) => void;
   onAlterationProbabilityChange: (probability: number) => void;
-  onToggleMelody: (enabled: boolean) => void; // Added
+  onToggleMelody: (enabled: boolean) => void;
+  onToggleHumanization: (enabled: boolean) => void; // Added
+  onHumanizationAmountChange: (amount: number) => void; // Added
 }
 
 export function Controls({
@@ -49,7 +53,9 @@ export function Controls({
   selectedRhythmPattern,
   selectedExtensionDensity,
   alterationProbability,
-  enableMelody, // Added
+  enableMelody,
+  enableHumanization, // Added
+  humanizationAmount, // Added
   onKeyChange,
   onScaleChange,
   onGenreChange,
@@ -60,7 +66,9 @@ export function Controls({
   onRhythmPatternChange,
   onExtensionDensityChange,
   onAlterationProbabilityChange,
-  onToggleMelody // Added
+  onToggleMelody,
+  onToggleHumanization, // Added
+  onHumanizationAmountChange // Added
 }: ControlsProps) {
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-4">
@@ -128,6 +136,16 @@ export function Controls({
             />
             <label htmlFor="melodyToggle" className="text-white">Enable Melody</label>
           </div>
+          <div className="flex items-center space-x-2"> {/* Added humanization toggle */}
+            <input
+              type="checkbox"
+              id="humanizationToggle"
+              checked={enableHumanization}
+              onChange={(e) => onToggleHumanization(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-blue-600"
+            />
+            <label htmlFor="humanizationToggle" className="text-white">Enable Humanization</label>
+          </div>
         </div>
       </div>
       <div className="flex items-center justify-between mt-4"> {/* New row for alteration probability */}
@@ -145,8 +163,23 @@ export function Controls({
           <span className="text-white w-10 text-right">{Math.round(alterationProbability * 100)}%</span>
         </div>
       </div>
+      <div className="flex items-center justify-between mt-4"> {/* New row for humanization amount */}
+        <div className="flex items-center space-x-2 w-full">
+          <label htmlFor="humanizationAmount" className="text-white w-32">Humanization Amt.</label>
+          <input
+            type="range"
+            id="humanizationAmount"
+            min="0"
+            max="100"
+            value={humanizationAmount * 100}
+            onChange={(e) => onHumanizationAmountChange(Number(e.target.value) / 100)}
+            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+          />
+          <span className="text-white w-10 text-right">{Math.round(humanizationAmount * 100)}%</span>
+        </div>
+      </div>
       <div className="flex items-center justify-center space-x-2">
-        <ActionButton onClick={() => onGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability, enableMelody)} icon={<Shuffle size={18} />} />
+        <ActionButton onClick={() => onGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability, enableMelody, enableHumanization, humanizationAmount)} icon={<Shuffle size={18} />} />
         <ActionButton onClick={isPlaying ? onStop : onPlay} icon={isPlaying ? <Pause size={18} /> : <Play size={18} />} />
         <ActionButton onClick={onStop} icon={<Square size={18} />} />
         <ActionButton onClick={onExportMidi} icon={<Download size={18} />} />

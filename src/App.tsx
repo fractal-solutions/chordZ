@@ -3,7 +3,7 @@ import { Music4, Sparkles } from 'lucide-react';
 import { ChordDisplay } from './components/ChordDisplay';
 import { PianoRoll } from './components/PianoRoll';
 import { Controls } from './components/Controls';
-import { generateProgression, applyVoiceLeading } from './utils/musicTheory';
+import { generateProgression, applyVoiceLeading, RHYTHM_PATTERNS } from './utils/musicTheory'; // Added RHYTHM_PATTERNS
 import { AudioEngine } from './utils/audioEngine';
 import { downloadMidi } from './utils/midiExport';
 import { Chord, ChordProgression } from './types/music';
@@ -17,20 +17,25 @@ function App() {
   const [selectedGenre, setSelectedGenre] = useState('soul');
   const [tempo, setTempo] = useState(120);
   const [selectedInversion, setSelectedInversion] = useState('root');
-  const [enableVoiceLeading, setEnableVoiceLeading] = useState(false); // Added
+  const [enableVoiceLeading, setEnableVoiceLeading] = useState(false);
+  const [enableRhythm, setEnableRhythm] = useState(false);
+  const [selectedRhythmPattern, setSelectedRhythmPattern] = useState('quarter');
+  const [selectedExtensionDensity, setSelectedExtensionDensity] = useState('none'); // Added
+  const [alterationProbability, setAlterationProbability] = useState(0); // Added
   
   const audioEngine = useRef<AudioEngine>(new AudioEngine());
   const timerId = useRef<NodeJS.Timeout | null>(null);
+  const currentRhythmIndex = useRef(0);
 
   useEffect(() => {
     // Generate initial progression
-    handleGenerate(selectedInversion, enableVoiceLeading); // Pass initial inversion and voice leading state
+    handleGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability); // Pass all initial states
   }, []);
 
-  const handleGenerate = (inversionType: string, voiceLeadingEnabled: boolean) => { // Modified to accept voiceLeadingEnabled
-    let newChords = generateProgression(selectedKey, selectedScale, selectedGenre, inversionType);
+  const handleGenerate = (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number) => { // Modified
+    let newChords = generateProgression(selectedKey, selectedScale, selectedGenre, inversionType, rhythmPatternName, extensionDensity, alterationProbability); // Pass all parameters
     if (voiceLeadingEnabled) {
-      newChords = applyVoiceLeading(newChords); // Apply voice leading
+      newChords = applyVoiceLeading(newChords);
     }
     setChords(newChords);
     setCurrentChord(-1);
@@ -47,6 +52,9 @@ function App() {
 
     setIsPlaying(true);
     setCurrentChord(0);
+    currentRhythmIndex.current = 0;
+
+    const rhythmPattern = enableRhythm ? RHYTHM_PATTERNS[selectedRhythmPattern].pattern : [1];
     
     const playNextChord = (chordIndex: number) => {
       if (chordIndex >= chords.length) {
@@ -55,12 +63,17 @@ function App() {
       }
       
       setCurrentChord(chordIndex);
-      const chordDuration = (60 / tempo) * 2 * 1000;
-      audioEngine.current.playChord(chords[chordIndex], chordDuration * 0.9);
+      
+      // Calculate chord duration based on rhythm pattern
+      const rhythmUnitDuration = (60 / tempo) * 1000;
+      const currentBeatDuration = rhythmPattern[currentRhythmIndex.current % rhythmPattern.length] * rhythmUnitDuration;
+      
+      audioEngine.current.playChord(chords[chordIndex], currentBeatDuration * 0.9);
       
       timerId.current = setTimeout(() => {
+        currentRhythmIndex.current = (currentRhythmIndex.current + 1) % rhythmPattern.length;
         playNextChord(chordIndex + 1);
-      }, chordDuration);
+      }, currentBeatDuration);
     };
     
     playNextChord(0);
@@ -84,12 +97,18 @@ function App() {
       key: selectedKey,
       scale: selectedScale,
       genre: selectedGenre,
-      tempo
+      tempo,
+      voicing: selectedInversion,
+      rhythmPattern: enableRhythm ? selectedRhythmPattern : undefined,
+      extensionDensity: selectedExtensionDensity, // Added
+      alterationProbability: alterationProbability // Added
     };
     
     const filename = `${selectedKey}_${selectedScale}_${selectedGenre}_progression.mid`;
     downloadMidi(progression, filename);
   };
+
+  
 
   return (
     <div className="min-h-screen bg-gray-900 text-white flex flex-col">
@@ -113,12 +132,20 @@ function App() {
             tempo={tempo}
             selectedInversion={selectedInversion}
             enableVoiceLeading={enableVoiceLeading}
+            enableRhythm={enableRhythm}
+            selectedRhythmPattern={selectedRhythmPattern}
+            selectedExtensionDensity={selectedExtensionDensity} // Added
+            alterationProbability={alterationProbability} // Added
             onKeyChange={setSelectedKey}
             onScaleChange={setSelectedScale}
             onGenreChange={setSelectedGenre}
             onTempoChange={setTempo}
             onInversionChange={setSelectedInversion}
             onToggleVoiceLeading={setEnableVoiceLeading}
+            onToggleRhythm={setEnableRhythm}
+            onRhythmPatternChange={setSelectedRhythmPattern}
+            onExtensionDensityChange={setSelectedExtensionDensity} // Added
+            onAlterationProbabilityChange={setAlterationProbability} // Added
           />
           {chords.length > 0 && (
             <div className="flex-grow">

@@ -12,6 +12,11 @@ export interface Chord {
   midi: number[];
 }
 
+export interface RhythmPattern {
+  name: string;
+  pattern: number[]; // Array of durations (e.g., [1, 0.5, 0.5] for quarter, eighth, eighth)
+}
+
 export interface ChordProgression {
   chords: Chord[];
   key: string;
@@ -19,6 +24,11 @@ export interface ChordProgression {
   genre: string;
   tempo: number;
   voicing?: string; // Added for chord voicings/inversions
+  rhythmPattern?: string; // Added for rhythmic patterns
+  extensionDensity?: string; // Added for chord extension control
+  alterationProbability?: number; // Added for alteration control (0-1)
+  melodyNotes?: Note[]; // Added for melody generation
+  enableMelody?: boolean; // Added to control melody generation
 }
 
 export interface Scale {

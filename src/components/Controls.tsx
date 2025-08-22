@@ -1,26 +1,34 @@
 import React, { useState } from 'react';
 import * as Select from '@radix-ui/react-select';
 import { Play, Pause, Square, Download, Shuffle } from 'lucide-react';
-import { SCALES, GENRES, NOTES } from '../utils/musicTheory';
+import { SCALES, GENRES, NOTES, RHYTHM_PATTERNS, EXTENSION_DENSITIES } from '../utils/musicTheory'; // Added EXTENSION_DENSITIES
 
 interface ControlsProps {
   isPlaying: boolean;
   onPlay: () => void;
   onStop: () => void;
-  onGenerate: (inversionType: string, voiceLeadingEnabled: boolean) => void; // Modified
+  onGenerate: (inversionType: string, voiceLeadingEnabled: boolean, rhythmPatternName: string, enableRhythm: boolean, extensionDensity: string, alterationProbability: number) => void; // Modified
   onExportMidi: () => void;
   selectedKey: string;
   selectedScale: string;
   selectedGenre: string;
   tempo: number;
   selectedInversion: string;
-  enableVoiceLeading: boolean; // Added
+  enableVoiceLeading: boolean;
+  enableRhythm: boolean;
+  selectedRhythmPattern: string;
+  selectedExtensionDensity: string; // Added
+  alterationProbability: number; // Added
   onKeyChange: (key: string) => void;
   onScaleChange: (scale: string) => void;
   onGenreChange: (genre: string) => void;
   onTempoChange: (tempo: number) => void;
   onInversionChange: (inversion: string) => void;
-  onToggleVoiceLeading: (enabled: boolean) => void; // Added
+  onToggleVoiceLeading: (enabled: boolean) => void;
+  onToggleRhythm: (enabled: boolean) => void;
+  onRhythmPatternChange: (pattern: string) => void;
+  onExtensionDensityChange: (density: string) => void; // Added
+  onAlterationProbabilityChange: (probability: number) => void; // Added
 }
 
 export function Controls({
@@ -34,13 +42,21 @@ export function Controls({
   selectedGenre,
   tempo,
   selectedInversion,
-  enableVoiceLeading, // Added
+  enableVoiceLeading,
+  enableRhythm,
+  selectedRhythmPattern,
+  selectedExtensionDensity, // Added
+  alterationProbability, // Added
   onKeyChange,
   onScaleChange,
   onGenreChange,
   onTempoChange,
   onInversionChange,
-  onToggleVoiceLeading // Added
+  onToggleVoiceLeading,
+  onToggleRhythm,
+  onRhythmPatternChange,
+  onExtensionDensityChange,
+  onAlterationProbabilityChange // Added
 }: ControlsProps) {
   return (
     <div className="bg-gray-800 rounded-xl p-4 space-y-4">
@@ -61,23 +77,62 @@ export function Controls({
               { value: 'drop2', label: 'Drop 2 Voicing' },
             ]}
           />
+          <CustomSelect
+            label="Rhythm"
+            value={selectedRhythmPattern}
+            onChange={onRhythmPatternChange}
+            options={Object.entries(RHYTHM_PATTERNS).map(([key, pattern]) => ({ value: key, label: pattern.name }))}
+          />
+          <CustomSelect
+            label="Extensions"
+            value={selectedExtensionDensity}
+            onChange={onExtensionDensityChange}
+            options={Object.entries(EXTENSION_DENSITIES).map(([key, density]) => ({ value: key, label: density.name }))}
+          />
         </div>
         <TempoControl tempo={tempo} onTempoChange={onTempoChange} />
       </div>
-      <div className="flex items-center justify-between mt-4"> {/* Added a new row for voice leading */}
-        <div className="flex items-center space-x-2">
+      <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="voiceLeadingToggle"
+              checked={enableVoiceLeading}
+              onChange={(e) => onToggleVoiceLeading(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-blue-600"
+            />
+            <label htmlFor="voiceLeadingToggle" className="text-white">Enable Voice Leading</label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="rhythmToggle"
+              checked={enableRhythm}
+              onChange={(e) => onToggleRhythm(e.target.checked)}
+              className="form-checkbox h-5 w-5 text-blue-600"
+            />
+            <label htmlFor="rhythmToggle" className="text-white">Enable Rhythm</label>
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center justify-between mt-4"> {/* New row for alteration probability */}
+        <div className="flex items-center space-x-2 w-full">
+          <label htmlFor="alterationProbability" className="text-white w-32">Alteration Prob.</label>
           <input
-            type="checkbox"
-            id="voiceLeadingToggle"
-            checked={enableVoiceLeading}
-            onChange={(e) => onToggleVoiceLeading(e.target.checked)}
-            className="form-checkbox h-5 w-5 text-blue-600"
+            type="range"
+            id="alterationProbability"
+            min="0"
+            max="100"
+            value={alterationProbability * 100}
+            onChange={(e) => onAlterationProbabilityChange(Number(e.target.value) / 100)}
+            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
           />
-          <label htmlFor="voiceLeadingToggle" className="text-white">Enable Voice Leading</label>
+          <span className="text-white w-10 text-right">{Math.round(alterationProbability * 100)}%</span>
         </div>
       </div>
       <div className="flex items-center justify-center space-x-2">
-        <ActionButton onClick={() => onGenerate(selectedInversion, enableVoiceLeading)} icon={<Shuffle size={18} />} />
+        <ActionButton onClick={() => onGenerate(selectedInversion, enableVoiceLeading, selectedRhythmPattern, enableRhythm, selectedExtensionDensity, alterationProbability)} icon={<Shuffle size={18} />} />
         <ActionButton onClick={isPlaying ? onStop : onPlay} icon={isPlaying ? <Pause size={18} /> : <Play size={18} />} />
         <ActionButton onClick={onStop} icon={<Square size={18} />} />
         <ActionButton onClick={onExportMidi} icon={<Download size={18} />} />

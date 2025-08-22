@@ -213,7 +213,7 @@ export function applyInversion(midiNotes: number[], inversion: string): number[]
   return invertedNotes;
 }
 
-export function getChordFromScale(root: string, degree: number, scaleName: string, chordType?: string, inversionType?: string): Chord {
+export function getChordFromScale(root: string, degree: number, scaleName: string, chordType?: string, inversionType?: string, extensionDensity?: string, alterationProbability?: number): Chord {
   const scaleNotes = getScaleNotes(root, scaleName);
   const chordRoot = scaleNotes[degree - 1];
   
@@ -245,105 +245,92 @@ export function getChordFromScale(root: string, degree: number, scaleName: strin
     }
   }
   
-  switch (determinedChordType) {
-    case 'maj7':
-      intervals = [0, 4, 7, 11];
-      symbol = 'maj7';
-      break;
-    case 'min7':
-      intervals = [0, 3, 7, 10];
-      symbol = 'm7';
-      break;
-    case 'dom7':
-      intervals = [0, 4, 7, 10];
-      symbol = '7';
-      break;
-    case '9':
-      intervals = [0, 4, 7, 10, 14];
-      symbol = '9';
-      break;
-    case 'maj9':
-      intervals = [0, 4, 7, 11, 14];
-      symbol = 'maj9';
-      break;
-    case 'min9':
-      intervals = [0, 3, 7, 10, 14];
-      symbol = 'm9';
-      break;
-    case '11':
-      intervals = [0, 4, 7, 10, 14, 17];
-      symbol = '11';
-      break;
-    case '13':
-      intervals = [0, 4, 7, 10, 14, 17, 21];
-      symbol = '13';
-      break;
-    case 'maj11':
-      intervals = [0, 4, 7, 11, 14, 17];
-      symbol = 'maj11';
-      break;
-    case 'min11':
-      intervals = [0, 3, 7, 10, 14, 17];
-      symbol = 'm11';
-      break;
-    case 'maj13':
-      intervals = [0, 4, 7, 11, 14, 17, 21];
-      symbol = 'maj13';
-      break;
-    case 'min13':
-      intervals = [0, 3, 7, 10, 14, 17, 21];
-      symbol = 'm13';
-      break;
-    case 'alt':
-      intervals = [0, 4, 8, 10, 13, 16]; // 1, 3, #5, b7, b9, #11
-      symbol = 'alt';
-      break;
-    case 'sus2':
-      intervals = [0, 2, 7];
-      symbol = 'sus2';
-      break;
-    case 'sus4':
-      intervals = [0, 5, 7];
-      symbol = 'sus4';
-      break;
-    case 'add9':
-      intervals = [0, 4, 7, 14];
-      symbol = 'add9';
-      break;
-    case '6/9':
-      intervals = [0, 4, 7, 9, 14];
-      symbol = '6/9';
-      break;
-    case '#11':
-      intervals = [0, 4, 7, 10, 14, 18];
-      symbol = '#11';
-      break;
-    case 'b13':
-      intervals = [0, 4, 7, 10, 14, 20];
-      symbol = 'b13';
-      break;
-    case 'min7b5':
-      intervals = [0, 3, 6, 10];
-      symbol = 'm7b5';
-      break;
-    case 'dim7':
-      intervals = [0, 3, 6, 9];
-      symbol = 'dim7';
-      break;
-    case 'triad': // Default triad
-      intervals = [0, 4, 7]; // Major triad as default
-      symbol = '';
-      // Re-evaluate for diatonic triad
-      const diatonicTriadQuality = getDiatonicChordQuality(scaleName, degree);
-      if (diatonicTriadQuality === 'minor') {
-        intervals = [0, 3, 7];
-      } else if (diatonicTriadQuality === 'diminished') {
-        intervals = [0, 3, 6];
+  // Base intervals for common chord types
+  const baseChordIntervals: Record<string, number[]> = {
+    'maj7': [0, 4, 7, 11],
+    'min7': [0, 3, 7, 10],
+    'dom7': [0, 4, 7, 10],
+    '9': [0, 4, 7, 10, 14],
+    'maj9': [0, 4, 7, 11, 14],
+    'min9': [0, 3, 7, 10, 14],
+    '11': [0, 4, 7, 10, 14, 17],
+    '13': [0, 4, 7, 10, 14, 17, 21],
+    'maj11': [0, 4, 7, 11, 14, 17],
+    'min11': [0, 3, 7, 10, 14, 17],
+    'maj13': [0, 4, 7, 11, 14, 17, 21],
+    'min13': [0, 3, 7, 10, 14, 17, 21],
+    'alt': [0, 4, 8, 10, 13, 16], // 1, 3, #5, b7, b9, #11
+    'sus2': [0, 2, 7],
+    'sus4': [0, 5, 7],
+    'add9': [0, 4, 7, 14],
+    '6/9': [0, 4, 7, 9, 14],
+    '#11': [0, 4, 7, 10, 14, 18],
+    'b13': [0, 4, 7, 10, 14, 20],
+    'min7b5': [0, 3, 6, 10],
+    'dim7': [0, 3, 6, 9],
+    'triad': [0, 4, 7] // Default to major triad
+  };
+
+  intervals = [...(baseChordIntervals[determinedChordType] || baseChordIntervals['triad'])];
+  symbol = determinedChordType; // Start with the determined type as symbol
+
+  // Re-evaluate for diatonic triad if it's the default
+  if (determinedChordType === 'triad') {
+    const diatonicTriadQuality = getDiatonicChordQuality(scaleName, degree);
+    if (diatonicTriadQuality === 'minor') {
+      intervals = [0, 3, 7];
+      symbol = 'm';
+    } else if (diatonicTriadQuality === 'diminished') {
+      intervals = [0, 3, 6];
+      symbol = 'dim';
+    } else {
+      symbol = ''; // Major triad
+    }
+  }
+
+  // Apply extensions based on density
+  const extensionProbability = EXTENSION_DENSITIES[extensionDensity || 'none']?.probability || 0;
+  if (Math.random() < extensionProbability) {
+    // Only add extensions if the base chord is a 7th or higher
+    if (intervals.length >= 4) { // Has at least a 7th
+      const possibleExtensions: number[] = [];
+      if (!intervals.includes(14)) possibleExtensions.push(14); // 9th
+      if (!intervals.includes(17)) possibleExtensions.push(17); // 11th
+      if (!intervals.includes(21)) possibleExtensions.push(21); // 13th
+
+      if (possibleExtensions.length > 0) {
+        const chosenExtension = possibleExtensions[Math.floor(Math.random() * possibleExtensions.length)];
+        intervals.push(chosenExtension);
+        intervals.sort((a, b) => a - b);
+        // Update symbol based on highest extension
+        if (chosenExtension === 21) symbol = symbol.replace('7', '13').replace('9', '13').replace('11', '13');
+        else if (chosenExtension === 17) symbol = symbol.replace('7', '11').replace('9', '11');
+        else if (chosenExtension === 14) symbol = symbol.replace('7', '9');
       }
-      break;
-    default:
-      intervals = [0, 4, 7]; // Fallback to major triad
-      symbol = '';
+    }
+  }
+
+  // Apply alterations based on probability, primarily for dominant chords
+  if (alterationProbability && Math.random() < alterationProbability) {
+    const isDominant = determinedChordType.includes('dom') || determinedChordType.includes('7');
+    if (isDominant) {
+      const possibleAlterations: { interval: number, symbol: string }[] = [];
+      // b9 (13), #9 (15), #11 (18), b13 (20)
+      // Check if the interval is already present or would clash
+      if (!intervals.includes(13)) possibleAlterations.push({ interval: 13, symbol: 'b9' });
+      if (!intervals.includes(15)) possibleAlterations.push({ interval: 15, symbol: '#9' });
+      if (!intervals.includes(18)) possibleAlterations.push({ interval: 18, symbol: '#11' });
+      if (!intervals.includes(20)) possibleAlterations.push({ interval: 20, symbol: 'b13' });
+
+      if (possibleAlterations.length > 0) {
+        const chosenAlteration = possibleAlterations[Math.floor(Math.random() * possibleAlterations.length)];
+        // Remove existing 9th, 11th, 13th if altered version is added
+        intervals = intervals.filter(int => ![14, 17, 21].includes(int)); // Remove natural 9, 11, 13
+        intervals.push(chosenAlteration.interval);
+        intervals.sort((a, b) => a - b);
+        symbol += chosenAlteration.symbol;
+      }
+    }
   }
   
   const chordRootIndex = NOTES.indexOf(chordRoot);
@@ -367,14 +354,29 @@ export function getChordFromScale(root: string, degree: number, scaleName: strin
   
   return {
     root: chordRoot,
-    quality: determinedChordType,
-    symbol: chordRoot + symbol,
+    quality: determinedChordType, // Keep the base quality
+    symbol: chordRoot + symbol, // Update symbol with extensions/alterations
     notes,
     midi: notes.map(n => n.midi)
   };
 }
 
-export function generateProgression(key: string, scaleName: string, genreName: string, inversionType?: string): Chord[] {
+export const RHYTHM_PATTERNS: Record<string, RhythmPattern> = {
+  quarter: { name: 'Quarter Notes', pattern: [1, 1, 1, 1] }, // 4 quarter notes per measure
+  eighth: { name: 'Eighth Notes', pattern: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5] }, // 8 eighth notes
+  half: { name: 'Half Notes', pattern: [2, 2] }, // 2 half notes
+  syncopated: { name: 'Syncopated', pattern: [0.5, 1, 0.5, 1, 1] }, // eighth, quarter, eighth, quarter, quarter
+  waltz: { name: 'Waltz', pattern: [1, 0.5, 0.5, 1, 0.5, 0.5] } // quarter, eighth, eighth (x2)
+};
+
+export const EXTENSION_DENSITIES = {
+  none: { name: 'None', probability: 0 },
+  some: { name: 'Some', probability: 0.3 },
+  lots: { name: 'Lots', probability: 0.6 },
+  all: { name: 'All', probability: 1 }
+};
+
+export function generateProgression(key: string, scaleName: string, genreName: string, inversionType?: string, rhythmPatternName?: string, extensionDensity?: string, alterationProbability?: number): Chord[] {
   const genre = GENRES[genreName];
   const pattern = genre.patterns[Math.floor(Math.random() * genre.patterns.length)];
   
@@ -398,19 +400,10 @@ export function generateProgression(key: string, scaleName: string, genreName: s
       chosenChordType = diatonicQuality;
     }
 
-    // Optionally add extensions
-    if (genre.extensions.length > 0 && Math.random() < 0.3) { // 30% chance to add an extension
-      const extension = genre.extensions[Math.floor(Math.random() * genre.extensions.length)];
-      // This part needs more sophisticated logic to combine base chord type with extension
-      // For now, a simple concatenation or replacement might be too naive.
-      // A better approach would be to have a function that takes a base chord and an extension and returns a new chord type.
-      // For simplicity, let's just pick a random chord type from genre.chordTypes if an extension is chosen,
-      // or ensure the chosenChordType is one that can be extended.
-      // For now, I'll keep it simple and just use the chosenChordType.
-      // This is an area for future improvement.
-    }
+    // Optionally add extensions (more sophisticated logic will be in getChordFromScale)
+    // This part is now handled by passing extensionDensity and alterationProbability to getChordFromScale
     
-    return getChordFromScale(key, degree, scaleName, chosenChordType, inversionType);
+    return getChordFromScale(key, degree, scaleName, chosenChordType, inversionType, extensionDensity, alterationProbability);
   });
 }
 

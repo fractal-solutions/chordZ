@@ -100,14 +100,75 @@ export function getScaleNotes(root: string, scaleName: string): string[] {
   });
 }
 
-export function getChordFromScale(root: string, degree: number, scaleName: string, chordType: string = 'triad'): Chord {
+export function getDiatonicChordQuality(scaleName: string, degree: number): string {
+  const scale = SCALES[scaleName];
+  if (!scale) {
+    console.warn(`Scale ${scaleName} not found.`);
+    return 'major'; // Default to major if scale not found
+  }
+
+  // Intervals from the root of the scale to the 1st, 3rd, 5th, and 7th of the chord built on the given degree
+  const getInterval = (startDegree: number, targetDegree: number) => {
+    const startIndex = (startDegree - 1) % scale.intervals.length;
+    const targetIndex = (targetDegree - 1) % scale.intervals.length;
+    let interval = scale.intervals[targetIndex] - scale.intervals[startIndex];
+    if (interval < 0) interval += 12; // Ensure positive interval within an octave
+    return interval;
+  };
+
+  const thirdInterval = getInterval(degree, degree + 2);
+  const fifthInterval = getInterval(degree, degree + 4);
+  const seventhInterval = getInterval(degree, degree + 6);
+
+  if (thirdInterval === 4 && fifthInterval === 7) {
+    if (seventhInterval === 11) return 'maj7'; // Major 7th
+    if (seventhInterval === 10) return 'dom7'; // Dominant 7th
+    return 'major'; // Major triad
+  } else if (thirdInterval === 3 && fifthInterval === 7) {
+    if (seventhInterval === 10) return 'min7'; // Minor 7th
+    return 'minor'; // Minor triad
+  } else if (thirdInterval === 3 && fifthInterval === 6) {
+    if (seventhInterval === 9) return 'dim7'; // Diminished 7th
+    if (seventhInterval === 10) return 'min7b5'; // Half-diminished 7th
+    return 'diminished'; // Diminished triad
+  }
+
+  return 'major'; // Fallback
+}
+
+export function getChordFromScale(root: string, degree: number, scaleName: string, chordType?: string): Chord {
   const scaleNotes = getScaleNotes(root, scaleName);
   const chordRoot = scaleNotes[degree - 1];
   
   let intervals: number[] = [];
   let symbol = '';
+  let determinedChordType = chordType;
+
+  if (!determinedChordType) {
+    // Determine diatonic chord quality if no specific chordType is provided
+    const diatonicQuality = getDiatonicChordQuality(scaleName, degree);
+    switch (diatonicQuality) {
+      case 'major':
+        determinedChordType = 'maj7'; // Default to maj7 for diatonic major
+        break;
+      case 'minor':
+        determinedChordType = 'min7'; // Default to min7 for diatonic minor
+        break;
+      case 'dom7':
+        determinedChordType = 'dom7'; // Default to dom7 for diatonic dominant
+        break;
+      case 'min7b5':
+        determinedChordType = 'min7b5'; // Default to min7b5 for diatonic half-diminished
+        break;
+      case 'dim7':
+        determinedChordType = 'dim7'; // Default to dim7 for diatonic diminished
+        break;
+      default:
+        determinedChordType = 'triad'; // Fallback
+    }
+  }
   
-  switch (chordType) {
+  switch (determinedChordType) {
     case 'maj7':
       intervals = [0, 4, 7, 11];
       symbol = 'maj7';
@@ -184,8 +245,27 @@ export function getChordFromScale(root: string, degree: number, scaleName: strin
       intervals = [0, 4, 7, 10, 14, 20];
       symbol = 'b13';
       break;
+    case 'min7b5':
+      intervals = [0, 3, 6, 10];
+      symbol = 'm7b5';
+      break;
+    case 'dim7':
+      intervals = [0, 3, 6, 9];
+      symbol = 'dim7';
+      break;
+    case 'triad': // Default triad
+      intervals = [0, 4, 7]; // Major triad as default
+      symbol = '';
+      // Re-evaluate for diatonic triad
+      const diatonicTriadQuality = getDiatonicChordQuality(scaleName, degree);
+      if (diatonicTriadQuality === 'minor') {
+        intervals = [0, 3, 7];
+      } else if (diatonicTriadQuality === 'diminished') {
+        intervals = [0, 3, 6];
+      }
+      break;
     default:
-      intervals = [0, 4, 7];
+      intervals = [0, 4, 7]; // Fallback to major triad
       symbol = '';
   }
   
@@ -205,7 +285,7 @@ export function getChordFromScale(root: string, degree: number, scaleName: strin
   
   return {
     root: chordRoot,
-    quality: chordType,
+    quality: determinedChordType,
     symbol: chordRoot + symbol,
     notes,
     midi: notes.map(n => n.midi)
@@ -215,7 +295,39 @@ export function getChordFromScale(root: string, degree: number, scaleName: strin
 export function generateProgression(key: string, scaleName: string, genreName: string): Chord[] {
   const genre = GENRES[genreName];
   const pattern = genre.patterns[Math.floor(Math.random() * genre.patterns.length)];
-  const chordType = genre.chordTypes[Math.floor(Math.random() * genre.chordTypes.length)];
   
-  return pattern.map(degree => getChordFromScale(key, degree, scaleName, chordType));
+  return pattern.map(degree => {
+    const diatonicQuality = getDiatonicChordQuality(scaleName, degree);
+    let chosenChordType: string | undefined;
+
+    // Prioritize genre-specific chord types that match the diatonic quality
+    const compatibleChordTypes = genre.chordTypes.filter(type => {
+      if (diatonicQuality.includes('major') && (type.includes('maj') || type === '9' || type === '11' || type === '13' || type === 'add9' || type === '6/9')) return true;
+      if (diatonicQuality.includes('minor') && (type.includes('min') || type === '9' || type === '11' || type === '13')) return true;
+      if (diatonicQuality.includes('dom') && (type.includes('dom') || type === '9' || type === '11' || type === '13' || type === 'alt')) return true;
+      if (diatonicQuality.includes('dim') && (type.includes('dim') || type.includes('min7b5'))) return true;
+      return false;
+    });
+
+    if (compatibleChordTypes.length > 0 && Math.random() < 0.7) { // 70% chance to use a compatible genre chord type
+      chosenChordType = compatibleChordTypes[Math.floor(Math.random() * compatibleChordTypes.length)];
+    } else {
+      // Fallback to diatonic quality if no compatible genre type or random chance fails
+      chosenChordType = diatonicQuality;
+    }
+
+    // Optionally add extensions
+    if (genre.extensions.length > 0 && Math.random() < 0.3) { // 30% chance to add an extension
+      const extension = genre.extensions[Math.floor(Math.random() * genre.extensions.length)];
+      // This part needs more sophisticated logic to combine base chord type with extension
+      // For now, a simple concatenation or replacement might be too naive.
+      // A better approach would be to have a function that takes a base chord and an extension and returns a new chord type.
+      // For simplicity, let's just pick a random chord type from genre.chordTypes if an extension is chosen,
+      // or ensure the chosenChordType is one that can be extended.
+      // For now, I'll keep it simple and just use the chosenChordType.
+      // This is an area for future improvement.
+    }
+    
+    return getChordFromScale(key, degree, scaleName, chosenChordType);
+  });
 }

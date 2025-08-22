@@ -232,7 +232,7 @@ const TempoControl = ({ tempo, onTempoChange }) => {
 
   return (
     <div
-      className="flex flex-col items-center space-y-1"
+      className="flex flex-col items-center space-y-1 scale-80"
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}

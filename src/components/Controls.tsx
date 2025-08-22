@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import * as Select from '@radix-ui/react-select';
 import { Play, Pause, Square, Download, Shuffle } from 'lucide-react';
 import { SCALES, GENRES, NOTES } from '../utils/musicTheory';
@@ -42,7 +42,7 @@ export function Controls({
           <CustomSelect label="Scale" value={selectedScale} onChange={onScaleChange} options={Object.entries(SCALES).map(([key, scale]) => ({ value: key, label: scale.name }))} />
           <CustomSelect label="Genre" value={selectedGenre} onChange={onGenreChange} options={Object.entries(GENRES).map(([key, genre]) => ({ value: key, label: genre.name }))} />
         </div>
-        <TempoControl tempo={tempo} onChange={onTempoChange} />
+        <TempoControl tempo={tempo} onTempoChange={onTempoChange} />
       </div>
       <div className="flex items-center justify-center space-x-2">
         <ActionButton onClick={onGenerate} icon={<Shuffle size={18} />} />
@@ -74,18 +74,39 @@ const CustomSelect = ({ label, value, onChange, options }) => (
   </div>
 );
 
-const TempoControl = ({ tempo, onChange }) => {
-  const handleWheel = (e) => {
-    const newTempo = tempo + (e.deltaY > 0 ? -1 : 1);
-    onChange(Math.max(60, Math.min(200, newTempo)));
+const TempoControl = ({ tempo, onTempoChange }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [startY, setStartY] = useState(0);
+  const [startTempo, setStartTempo] = useState(0);
+
+  const handleMouseDown = (e) => {
+    setIsDragging(true);
+    setStartY(e.clientY);
+    setStartTempo(tempo);
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isDragging) return;
+    const deltaY = startY - e.clientY;
+    const newTempo = startTempo + deltaY;
+    onTempoChange(Math.max(60, Math.min(200, newTempo)));
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
   };
 
   return (
-    <div className="flex flex-col items-center space-y-1">
+    <div
+      className="flex flex-col items-center space-y-1"
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
+    >
       <label className="block text-xs font-medium text-gray-400">Tempo</label>
       <div
         className="w-24 h-12 bg-gray-900 rounded-md flex items-center justify-center text-2xl font-mono text-white select-none cursor-ns-resize"
-        onWheel={handleWheel}
+        onMouseDown={handleMouseDown}
       >
         {tempo}
       </div>

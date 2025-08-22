@@ -150,7 +150,7 @@ function App() {
     <>
       {isLoading && <LoadingScreen />}
       <div className="min-h-screen bg-gray-900 text-white flex flex-col" style={{ display: isLoading ? 'none' : 'flex' }}> {/* Hide main content while loading */}
-        <div className="transform scale-90 origin-top-left w-[111.11%] h-[111.11%]"> {/* Scaled content wrapper */}
+        <div className=""> {/* Scaled content wrapper className: transform scale-90 origin-top-left w-[111.11%] h-[111.11%] */}
           {/* Header */}
           <div className="text-center py-4 border-b border-gray-800">
             <h1 className="text-3xl font-bold text-white">VibeChordZ</h1>
